@@ -1,9 +1,9 @@
 import pandas as pd
 import io
 import numpy as np
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
@@ -53,38 +53,6 @@ csv_data = """Age,Gender,Income,Education,Marital Status,Number of Children,Home
 41,Male,110000,Doctorate,Single,0,Owned,High
 46,Female,95000,High School Diploma,Married,1,Owned,High
 51,Male,140000,Bachelor's Degree,Married,0,Owned,High
-27,Female,37500,High School Diploma,Single,0,Rented,Low
-32,Male,57500,Associate's Degree,Single,0,Rented,Average
-37,Female,72500,Bachelor's Degree,Married,2,Owned,High
-42,Male,100000,Master's Degree,Single,0,Owned,High
-47,Female,90000,Doctorate,Married,1,Owned,High
-52,Male,130000,High School Diploma,Married,0,Owned,High
-28,Female,32500,Associate's Degree,Single,0,Rented,Low
-33,Male,52500,High School Diploma,Single,0,Rented,Average
-38,Female,67500,Bachelor's Degree,Married,2,Owned,High
-43,Male,92500,Master's Degree,Single,0,Owned,High
-48,Female,82500,Doctorate,Married,1,Owned,High
-53,Male,122500,Associate's Degree,Married,0,Owned,High
-29,Female,27500,High School Diploma,Single,0,Rented,Low
-34,Male,47500,Associate's Degree,Single,0,Rented,Average
-39,Female,62500,Bachelor's Degree,Married,2,Owned,High
-44,Male,87500,Master's Degree,Single,0,Owned,High
-49,Female,77500,Doctorate,Married,1,Owned,High
-25,Female,57500,Bachelor's Degree,Single,0,Rented,Average
-30,Male,112500,Master's Degree,Married,2,Owned,High
-35,Female,85000,Doctorate,Married,1,Owned,High
-25,Female,60000,Bachelor's Degree,Single,0,Rented,Average
-30,Male,117500,Master's Degree,Married,2,Owned,High
-35,Female,90000,Doctorate,Married,1,Owned,High
-40,Male,142500,High School Diploma,Single,0,Owned,High
-45,Female,110000,Bachelor's Degree,Married,3,Owned,High
-50,Male,160000,Master's Degree,Married,0,Owned,High
-26,Female,47500,Associate's Degree,Single,0,Rented,Average
-31,Male,67500,Bachelor's Degree,Single,0,Rented,Average
-36,Female,90000,Master's Degree,Married,2,Owned,High
-41,Male,115000,Doctorate,Single,0,Owned,High
-46,Female,97500,High School Diploma,Married,1,Owned,High
-51,Male,145000,Bachelor's Degree,Married,0,Owned,High
 27,Female,37500,High School Diploma,Single,0,Rented,Low
 32,Male,57500,Associate's Degree,Single,0,Rented,Average
 37,Female,75000,Bachelor's Degree,Married,2,Owned,High
@@ -179,7 +147,7 @@ csv_data = """Age,Gender,Income,Education,Marital Status,Number of Children,Home
 
 df = pd.read_csv(io.StringIO(csv_data))
 
-# Preprocess
+# Preprocess & Train
 encoders = {}
 text_columns = ['Gender', 'Education', 'Marital Status', 'Home Ownership', 'Credit Score']
 
@@ -191,8 +159,7 @@ for col in text_columns:
 X = df.drop('Credit Score', axis=1)
 y = df['Credit Score']
 
-# --- MODEL TRAINING ---
-# Use RandomForest with class_weight='balanced' to handle 'Average' and 'Low' better
+# Random Forest with Balanced Weight
 model = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)
 model.fit(X, y)
 
@@ -240,7 +207,8 @@ html_content = """
             <div class="grid-row">
                 <div class="input-group">
                     <label>Age</label>
-                    <input type="number" id="age" placeholder="30" required>
+                    <!-- min="0" prevents negative numbers, no value/placeholder means empty -->
+                    <input type="number" id="age" min="0" required>
                 </div>
                 <div class="input-group">
                     <label>Gender</label>
@@ -253,7 +221,8 @@ html_content = """
 
             <div class="input-group">
                 <label>Annual Income ($)</label>
-                <input type="number" id="income" placeholder="50000" required>
+                <!-- min="0" prevents negative numbers -->
+                <input type="number" id="income" min="0" required>
             </div>
 
             <div class="grid-row">
@@ -279,7 +248,8 @@ html_content = """
             <div class="grid-row">
                 <div class="input-group">
                     <label>Children</label>
-                    <input type="number" id="children" value="0" required>
+                    <!-- min="0" prevents negative numbers -->
+                    <input type="number" id="children" min="0" required>
                 </div>
                 <div class="input-group">
                     <label>Home</label>
@@ -306,16 +276,27 @@ html_content = """
             const resultBox = document.getElementById('result');
             const scoreText = document.getElementById('scoreText');
             
+            // Get values
+            const ageVal = document.getElementById('age').value;
+            const incomeVal = document.getElementById('income').value;
+            const childrenVal = document.getElementById('children').value;
+
+            // Extra Validation: Prevent submission if negative
+            if(ageVal < 0 || incomeVal < 0 || childrenVal < 0) {
+                alert("Please enter positive numbers only.");
+                return;
+            }
+
             btn.innerHTML = "Processing...";
             btn.style.opacity = "0.7";
             
             const data = {
-                age: parseInt(document.getElementById('age').value),
+                age: parseInt(ageVal),
                 gender: document.getElementById('gender').value,
-                income: parseFloat(document.getElementById('income').value),
+                income: parseFloat(incomeVal),
                 education: document.getElementById('education').value,
                 marital_status: document.getElementById('marital_status').value,
-                children: parseInt(document.getElementById('children').value),
+                children: parseInt(childrenVal),
                 home_ownership: document.getElementById('home_ownership').value
             };
 
@@ -325,18 +306,21 @@ html_content = """
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
+                
                 const result = await response.json();
                 
                 btn.innerHTML = "Analyze Score";
                 btn.style.opacity = "1";
 
-                if(result.credit_score) {
+                if(response.ok && result.credit_score) {
                     scoreText.innerText = result.credit_score;
                     resultBox.className = "result-container show";
                     if(result.credit_score === 'High') resultBox.classList.add('high');
                     else if(result.credit_score === 'Average') resultBox.classList.add('average');
                     else resultBox.classList.add('low');
-                } 
+                } else {
+                     alert(result.detail || "Error processing request");
+                }
             } catch (error) {
                 console.error(error);
                 btn.innerHTML = "Error";
@@ -361,13 +345,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pydantic Model with Logic: Greater than or Equal to 0 (ge=0)
 class CreditInput(BaseModel):
-    age: int
+    age: int = Field(..., ge=0, description="Age cannot be negative")
     gender: str
-    income: float
+    income: float = Field(..., ge=0, description="Income cannot be negative")
     education: str
     marital_status: str
-    children: int
+    children: int = Field(..., ge=0, description="Children cannot be negative")
     home_ownership: str
 
 @app.get("/", response_class=HTMLResponse)
@@ -398,6 +383,7 @@ def predict_credit_score(data: CreditInput):
         return {"credit_score": result_text}
 
     except Exception as e:
+        # If any calculation fails
         return {"error": str(e)}
 
 if __name__ == "__main__":
