@@ -5,10 +5,11 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
+
 # ==========================================
-# 1. DATASET & TRAINING (Runs on startup)
+# 1. DATASET & TRAINING
 # ==========================================
 csv_data = """Age,Gender,Income,Education,Marital Status,Number of Children,Home Ownership,Credit Score
 25,Female,50000,Bachelor's Degree,Single,0,Rented,High
@@ -178,7 +179,7 @@ csv_data = """Age,Gender,Income,Education,Marital Status,Number of Children,Home
 
 df = pd.read_csv(io.StringIO(csv_data))
 
-# Preprocess & Train
+# Preprocess
 encoders = {}
 text_columns = ['Gender', 'Education', 'Marital Status', 'Home Ownership', 'Credit Score']
 
@@ -189,11 +190,14 @@ for col in text_columns:
 
 X = df.drop('Credit Score', axis=1)
 y = df['Credit Score']
-model = GaussianNB()
+
+# --- MODEL TRAINING ---
+# Use RandomForest with class_weight='balanced' to handle 'Average' and 'Low' better
+model = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)
 model.fit(X, y)
 
 # ==========================================
-# 2. HTML/CSS/JS INTERFACE (Embedded)
+# 2. HTML INTERFACE
 # ==========================================
 html_content = """
 <!DOCTYPE html>
@@ -209,6 +213,7 @@ html_content = """
         .card { background: #ffffff; width: 100%; max-width: 450px; border-radius: 20px; padding: 40px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); animation: slideUp 0.8s ease; }
         .header { text-align: center; margin-bottom: 25px; }
         .header h1 { font-size: 26px; color: #333; font-weight: 700; }
+        .header p { color: #666; font-size: 13px; }
         .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .input-group { margin-bottom: 15px; }
         label { display: block; font-size: 12px; color: #444; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; }
@@ -227,32 +232,82 @@ html_content = """
 </head>
 <body>
     <div class="card">
-        <div class="header"><h1>Credit Score AI</h1><p>Predict creditworthiness instantly</p></div>
+        <div class="header">
+            <h1>Credit Score AI</h1>
+            <p>Predict creditworthiness instantly</p>
+        </div>
         <form id="predictionForm">
             <div class="grid-row">
-                <div class="input-group"><label>Age</label><input type="number" id="age" placeholder="30" required></div>
-                <div class="input-group"><label>Gender</label><select id="gender"><option value="Female">Female</option><option value="Male">Male</option></select></div>
+                <div class="input-group">
+                    <label>Age</label>
+                    <input type="number" id="age" placeholder="30" required>
+                </div>
+                <div class="input-group">
+                    <label>Gender</label>
+                    <select id="gender">
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                    </select>
+                </div>
             </div>
-            <div class="input-group"><label>Annual Income ($)</label><input type="number" id="income" placeholder="50000" required></div>
+
+            <div class="input-group">
+                <label>Annual Income ($)</label>
+                <input type="number" id="income" placeholder="50000" required>
+            </div>
+
             <div class="grid-row">
-                <div class="input-group"><label>Education</label><select id="education"><option value="High School Diploma">High School</option><option value="Associate's Degree">Associate</option><option value="Bachelor's Degree">Bachelor's</option><option value="Master's Degree">Master's</option><option value="Doctorate">Doctorate</option></select></div>
-                <div class="input-group"><label>Marital Status</label><select id="marital_status"><option value="Single">Single</option><option value="Married">Married</option></select></div>
+                <div class="input-group">
+                    <label>Education</label>
+                    <select id="education">
+                        <option value="High School Diploma">High School</option>
+                        <option value="Associate's Degree">Associate</option>
+                        <option value="Bachelor's Degree">Bachelor's</option>
+                        <option value="Master's Degree">Master's</option>
+                        <option value="Doctorate">Doctorate</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Marital Status</label>
+                    <select id="marital_status">
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                    </select>
+                </div>
             </div>
+
             <div class="grid-row">
-                <div class="input-group"><label>Children</label><input type="number" id="children" value="0" required></div>
-                <div class="input-group"><label>Home</label><select id="home_ownership"><option value="Rented">Rented</option><option value="Owned">Owned</option></select></div>
+                <div class="input-group">
+                    <label>Children</label>
+                    <input type="number" id="children" value="0" required>
+                </div>
+                <div class="input-group">
+                    <label>Home</label>
+                    <select id="home_ownership">
+                        <option value="Rented">Rented</option>
+                        <option value="Owned">Owned</option>
+                    </select>
+                </div>
             </div>
+
             <button type="submit" id="predictBtn">Analyze Score</button>
         </form>
-        <div id="result" class="result-container"><span style="font-size: 12px; text-transform: uppercase;">Prediction Result</span><h2 id="scoreText">--</h2></div>
+
+        <div id="result" class="result-container">
+            <span style="font-size: 12px; text-transform: uppercase;">Prediction Result</span>
+            <h2 id="scoreText">--</h2>
+        </div>
     </div>
+
     <script>
         document.getElementById('predictionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('predictBtn');
             const resultBox = document.getElementById('result');
             const scoreText = document.getElementById('scoreText');
+            
             btn.innerHTML = "Processing...";
+            btn.style.opacity = "0.7";
             
             const data = {
                 age: parseInt(document.getElementById('age').value),
@@ -265,14 +320,16 @@ html_content = """
             };
 
             try {
-                // Fetch from the SAME server (Relative path)
                 const response = await fetch('/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
                 const result = await response.json();
+                
                 btn.innerHTML = "Analyze Score";
+                btn.style.opacity = "1";
+
                 if(result.credit_score) {
                     scoreText.innerText = result.credit_score;
                     resultBox.className = "result-container show";
@@ -283,7 +340,7 @@ html_content = """
             } catch (error) {
                 console.error(error);
                 btn.innerHTML = "Error";
-                alert("Something went wrong with the prediction.");
+                btn.style.opacity = "1";
             }
         });
     </script>
@@ -292,7 +349,7 @@ html_content = """
 """
 
 # ==========================================
-# 3. API & ROUTES
+# 3. API
 # ==========================================
 app = FastAPI()
 
@@ -313,12 +370,10 @@ class CreditInput(BaseModel):
     children: int
     home_ownership: str
 
-# 1. SERVE THE HTML INTERFACE
 @app.get("/", response_class=HTMLResponse)
 def home():
     return html_content
 
-# 2. HANDLE PREDICTION
 @app.post("/predict")
 def predict_credit_score(data: CreditInput):
     try:
