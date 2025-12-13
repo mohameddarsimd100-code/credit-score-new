@@ -1,7 +1,7 @@
 import pandas as pd
 import io
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +53,38 @@ csv_data = """Age,Gender,Income,Education,Marital Status,Number of Children,Home
 41,Male,110000,Doctorate,Single,0,Owned,High
 46,Female,95000,High School Diploma,Married,1,Owned,High
 51,Male,140000,Bachelor's Degree,Married,0,Owned,High
+27,Female,37500,High School Diploma,Single,0,Rented,Low
+32,Male,57500,Associate's Degree,Single,0,Rented,Average
+37,Female,72500,Bachelor's Degree,Married,2,Owned,High
+42,Male,100000,Master's Degree,Single,0,Owned,High
+47,Female,90000,Doctorate,Married,1,Owned,High
+52,Male,130000,High School Diploma,Married,0,Owned,High
+28,Female,32500,Associate's Degree,Single,0,Rented,Low
+33,Male,52500,High School Diploma,Single,0,Rented,Average
+38,Female,67500,Bachelor's Degree,Married,2,Owned,High
+43,Male,92500,Master's Degree,Single,0,Owned,High
+48,Female,82500,Doctorate,Married,1,Owned,High
+53,Male,122500,Associate's Degree,Married,0,Owned,High
+29,Female,27500,High School Diploma,Single,0,Rented,Low
+34,Male,47500,Associate's Degree,Single,0,Rented,Average
+39,Female,62500,Bachelor's Degree,Married,2,Owned,High
+44,Male,87500,Master's Degree,Single,0,Owned,High
+49,Female,77500,Doctorate,Married,1,Owned,High
+25,Female,57500,Bachelor's Degree,Single,0,Rented,Average
+30,Male,112500,Master's Degree,Married,2,Owned,High
+35,Female,85000,Doctorate,Married,1,Owned,High
+25,Female,60000,Bachelor's Degree,Single,0,Rented,Average
+30,Male,117500,Master's Degree,Married,2,Owned,High
+35,Female,90000,Doctorate,Married,1,Owned,High
+40,Male,142500,High School Diploma,Single,0,Owned,High
+45,Female,110000,Bachelor's Degree,Married,3,Owned,High
+50,Male,160000,Master's Degree,Married,0,Owned,High
+26,Female,47500,Associate's Degree,Single,0,Rented,Average
+31,Male,67500,Bachelor's Degree,Single,0,Rented,Average
+36,Female,90000,Master's Degree,Married,2,Owned,High
+41,Male,115000,Doctorate,Single,0,Owned,High
+46,Female,97500,High School Diploma,Married,1,Owned,High
+51,Male,145000,Bachelor's Degree,Married,0,Owned,High
 27,Female,37500,High School Diploma,Single,0,Rented,Low
 32,Male,57500,Associate's Degree,Single,0,Rented,Average
 37,Female,75000,Bachelor's Degree,Married,2,Owned,High
@@ -173,106 +205,282 @@ html_content = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Credit Score AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Modern Font: Inter for UI, Poppins for Headings -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .card { background: #ffffff; width: 100%; max-width: 450px; border-radius: 20px; padding: 40px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); animation: slideUp 0.8s ease; }
-        .header { text-align: center; margin-bottom: 25px; }
-        .header h1 { font-size: 26px; color: #333; font-weight: 700; }
-        .header p { color: #666; font-size: 13px; }
-        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-size: 12px; color: #444; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; }
-        input, select { width: 100%; padding: 12px; font-size: 14px; background-color: #f4f6f8; border: 1px solid #e1e4e8; border-radius: 8px; outline: none; transition: 0.3s; }
-        input:focus, select:focus { border-color: #2a5298; background-color: #fff; }
-        button { width: 100%; padding: 14px; background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%); color: white; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px; }
-        button:hover { transform: translateY(-2px); }
-        .result-container { margin-top: 25px; padding: 15px; border-radius: 10px; text-align: center; background-color: #f8f9fa; border: 1px solid #eee; display: none; }
-        .result-container.show { display: block; animation: fadeIn 0.5s; }
-        .high { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .average { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .low { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --border-color: #e5e7eb;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        body { 
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); 
+            min-height: 100vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 20px; 
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            width: 100%; 
+            max-width: 500px; 
+            border-radius: 16px; 
+            padding: 40px; 
+            box-shadow: var(--shadow); 
+            border: 1px solid rgba(255,255,255,0.7);
+        }
+
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { 
+            font-family: 'Poppins', sans-serif; 
+            font-size: 28px; 
+            color: var(--text-dark); 
+            font-weight: 700; 
+            letter-spacing: -0.5px;
+        }
+        .header p { 
+            color: var(--text-light); 
+            font-size: 14px; 
+            margin-top: 5px; 
+        }
+
+        /* Form Layout */
+        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .input-wrapper { margin-bottom: 20px; position: relative; }
+
+        label { 
+            display: block; 
+            font-size: 13px; 
+            color: var(--text-dark); 
+            font-weight: 600; 
+            margin-bottom: 8px; 
+        }
+
+        /* Input Styling with Icon support */
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            color: #9ca3af;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        input, select { 
+            width: 100%; 
+            padding: 12px 15px 12px 40px; /* Padding left for icon */
+            font-size: 14px; 
+            color: var(--text-dark);
+            background-color: #f9fafb; 
+            border: 1px solid var(--border-color); 
+            border-radius: 10px; 
+            outline: none; 
+            transition: all 0.2s ease;
+            appearance: none; /* Remove default arrow */
+        }
+
+        /* Custom Arrow for Select */
+        .select-wrapper::after {
+            content: '\\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #9ca3af;
+            pointer-events: none;
+        }
+
+        input:focus, select:focus { 
+            border-color: var(--primary); 
+            background-color: #fff; 
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); 
+        }
+
+        /* Button Styling */
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background-color: var(--primary); 
+            color: white; 
+            font-size: 15px; 
+            font-weight: 600; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            transition: background-color 0.2s, transform 0.1s; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button:hover { background-color: var(--primary-hover); }
+        button:active { transform: scale(0.98); }
+
+        /* Result Section */
+        .result-container { 
+            margin-top: 25px; 
+            padding: 20px; 
+            border-radius: 12px; 
+            text-align: center; 
+            background-color: #f9fafb; 
+            border: 1px solid var(--border-color); 
+            display: none; 
+            animation: fadeIn 0.4s ease;
+        }
+
+        .result-container.show { display: block; }
+        .result-title { font-size: 12px; text-transform: uppercase; color: var(--text-light); letter-spacing: 1px; font-weight: 600; }
+        .result-value { font-family: 'Poppins', sans-serif; font-size: 24px; margin-top: 5px; font-weight: 700; }
+
+        /* Status Colors */
+        .status-high { color: #059669; background: #d1fae5; border: 1px solid #10b981; }
+        .status-avg { color: #d97706; background: #fef3c7; border: 1px solid #f59e0b; }
+        .status-low { color: #dc2626; background: #fee2e2; border: 1px solid #ef4444; }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .spinner {
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 2px solid white;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
     </style>
 </head>
 <body>
     <div class="card">
         <div class="header">
-            <h1>Credit Score AI</h1>
-            <p>Predict creditworthiness instantly</p>
+            <h1>Financial AI</h1>
+            <p>Creditworthiness Prediction Engine</p>
         </div>
+        
         <form id="predictionForm">
+            <!-- Row 1 -->
             <div class="grid-row">
-                <div class="input-group">
+                <div class="input-wrapper">
                     <label>Age</label>
-                    <!-- min="0" prevents negative numbers, no value/placeholder means empty -->
-                    <input type="number" id="age" min="0" required>
+                    <div class="input-group">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="number" id="age" min="0" required placeholder="Years">
+                    </div>
                 </div>
-                <div class="input-group">
+                <div class="input-wrapper">
                     <label>Gender</label>
-                    <select id="gender">
-                        <option value="Female">Female</option>
-                        <option value="Male">Male</option>
-                    </select>
+                    <div class="input-group select-wrapper">
+                        <i class="fa-solid fa-venus-mars"></i>
+                        <select id="gender">
+                            <option value="Female">Female</option>
+                            <option value="Male">Male</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <div class="input-group">
+            <!-- Income -->
+            <div class="input-wrapper">
                 <label>Annual Income ($)</label>
-                <!-- min="0" prevents negative numbers -->
-                <input type="number" id="income" min="0" required>
+                <div class="input-group">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                    <input type="number" id="income" min="0" required placeholder="e.g. 55000">
+                </div>
             </div>
 
+            <!-- Row 2 -->
             <div class="grid-row">
-                <div class="input-group">
+                <div class="input-wrapper">
                     <label>Education</label>
-                    <select id="education">
-                        <option value="High School Diploma">High School</option>
-                        <option value="Associate's Degree">Associate</option>
-                        <option value="Bachelor's Degree">Bachelor's</option>
-                        <option value="Master's Degree">Master's</option>
-                        <option value="Doctorate">Doctorate</option>
-                    </select>
+                    <div class="input-group select-wrapper">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                        <select id="education">
+                            <option value="High School Diploma">High School</option>
+                            <option value="Associate's Degree">Associate</option>
+                            <option value="Bachelor's Degree">Bachelor's</option>
+                            <option value="Master's Degree">Master's</option>
+                            <option value="Doctorate">Doctorate</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="input-group">
+                <div class="input-wrapper">
                     <label>Marital Status</label>
-                    <select id="marital_status">
-                        <option value="Single">Single</option>
-                        <option value="Married">Married</option>
-                    </select>
+                    <div class="input-group select-wrapper">
+                        <i class="fa-solid fa-heart"></i>
+                        <select id="marital_status">
+                            <option value="Single">Single</option>
+                            <option value="Married">Married</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
+            <!-- Row 3 -->
             <div class="grid-row">
-                <div class="input-group">
+                <div class="input-wrapper">
                     <label>Children</label>
-                    <!-- min="0" prevents negative numbers -->
-                    <input type="number" id="children" min="0" required>
+                    <div class="input-group">
+                        <i class="fa-solid fa-child"></i>
+                        <input type="number" id="children" min="0" required placeholder="Count">
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label>Home</label>
-                    <select id="home_ownership">
-                        <option value="Rented">Rented</option>
-                        <option value="Owned">Owned</option>
-                    </select>
+                <div class="input-wrapper">
+                    <label>Home Type</label>
+                    <div class="input-group select-wrapper">
+                        <i class="fa-solid fa-house"></i>
+                        <select id="home_ownership">
+                            <option value="Rented">Rented</option>
+                            <option value="Owned">Owned</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <button type="submit" id="predictBtn">Analyze Score</button>
+            <button type="submit" id="predictBtn">
+                <span>Analyze Credit Score</span>
+                <div class="spinner" id="spinner"></div>
+            </button>
         </form>
 
         <div id="result" class="result-container">
-            <span style="font-size: 12px; text-transform: uppercase;">Prediction Result</span>
-            <h2 id="scoreText">--</h2>
+            <div class="result-title">AI Prediction</div>
+            <div id="scoreText" class="result-value">--</div>
         </div>
     </div>
 
     <script>
         document.getElementById('predictionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
             const btn = document.getElementById('predictBtn');
+            const spinner = document.getElementById('spinner');
+            const btnText = btn.querySelector('span');
             const resultBox = document.getElementById('result');
             const scoreText = document.getElementById('scoreText');
             
@@ -281,14 +489,17 @@ html_content = """
             const incomeVal = document.getElementById('income').value;
             const childrenVal = document.getElementById('children').value;
 
-            // Extra Validation: Prevent submission if negative
+            // Validation
             if(ageVal < 0 || incomeVal < 0 || childrenVal < 0) {
                 alert("Please enter positive numbers only.");
                 return;
             }
 
-            btn.innerHTML = "Processing...";
-            btn.style.opacity = "0.7";
+            // Loading State
+            btnText.innerText = "Processing...";
+            btn.style.opacity = "0.9";
+            spinner.style.display = "block";
+            resultBox.style.display = "none";
             
             const data = {
                 age: parseInt(ageVal),
@@ -301,6 +512,9 @@ html_content = """
             };
 
             try {
+                // Simulate a slight delay for better UX feel
+                await new Promise(r => setTimeout(r, 500));
+
                 const response = await fetch('/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -309,22 +523,31 @@ html_content = """
                 
                 const result = await response.json();
                 
-                btn.innerHTML = "Analyze Score";
-                btn.style.opacity = "1";
-
                 if(response.ok && result.credit_score) {
                     scoreText.innerText = result.credit_score;
                     resultBox.className = "result-container show";
-                    if(result.credit_score === 'High') resultBox.classList.add('high');
-                    else if(result.credit_score === 'Average') resultBox.classList.add('average');
-                    else resultBox.classList.add('low');
+                    
+                    // Reset styling then apply new specific style
+                    resultBox.classList.remove('status-high', 'status-avg', 'status-low');
+                    
+                    if(result.credit_score === 'High') {
+                        resultBox.classList.add('status-high');
+                    } else if(result.credit_score === 'Average') {
+                        resultBox.classList.add('status-avg');
+                    } else {
+                        resultBox.classList.add('status-low');
+                    }
                 } else {
                      alert(result.detail || "Error processing request");
                 }
             } catch (error) {
                 console.error(error);
-                btn.innerHTML = "Error";
+                alert("Server connection failed.");
+            } finally {
+                // Reset State
+                btnText.innerText = "Analyze Credit Score";
                 btn.style.opacity = "1";
+                spinner.style.display = "none";
             }
         });
     </script>
@@ -345,7 +568,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic Model with Logic: Greater than or Equal to 0 (ge=0)
 class CreditInput(BaseModel):
     age: int = Field(..., ge=0, description="Age cannot be negative")
     gender: str
@@ -383,7 +605,6 @@ def predict_credit_score(data: CreditInput):
         return {"credit_score": result_text}
 
     except Exception as e:
-        # If any calculation fails
         return {"error": str(e)}
 
 if __name__ == "__main__":
