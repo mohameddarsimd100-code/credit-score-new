@@ -6,102 +6,62 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
 
 # ==========================================
-# 1. INTELLIGENT DATA GENERATION & TRAINING
+# 1. INTELLIGENT DATA GENERATION
 # ==========================================
-
-def generate_logical_data(n=1000):
-    """
-    Generates a dataset based on LOGIC so the model learns reasonable rules.
-    """
+def generate_logical_data(n=2000):
     data = []
-    
     for _ in range(n):
-        # 1. Random base details
         age = random.randint(18, 70)
         gender = random.choice(["Male", "Female"])
         marital = random.choice(["Single", "Married"])
         children = random.randint(0, 3)
         
-        # 2. Logic: Education & Income correlation
-        # Higher education usually correlates with higher income
         edu_options = ["High School Diploma", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Doctorate"]
         edu = random.choice(edu_options)
         
-        if edu == "High School Diploma":
-            income = random.randint(25000, 50000)
-        elif edu == "Associate's Degree":
-            income = random.randint(40000, 65000)
-        elif edu == "Bachelor's Degree":
-            income = random.randint(55000, 90000)
-        elif edu == "Master's Degree":
-            income = random.randint(80000, 130000)
-        else: # Doctorate
-            income = random.randint(100000, 180000)
-            
-        # Add random noise to income (some high schoolers earn a lot, some PhDs earn less)
+        if edu == "High School Diploma": income = random.randint(25000, 55000)
+        elif edu == "Associate's Degree": income = random.randint(40000, 70000)
+        elif edu == "Bachelor's Degree": income = random.randint(55000, 95000)
+        elif edu == "Master's Degree": income = random.randint(80000, 140000)
+        else: income = random.randint(100000, 200000)
         income += random.randint(-5000, 15000)
 
-        # 3. Logic: Home Ownership
-        # Richer people likely own homes
-        if income > 85000:
-            home = random.choices(["Owned", "Rented"], weights=[80, 20])[0]
-        else:
-            home = random.choices(["Owned", "Rented"], weights=[30, 70])[0]
+        if income > 85000: home = random.choices(["Owned", "Rented"], weights=[80, 20])[0]
+        else: home = random.choices(["Owned", "Rented"], weights=[30, 70])[0]
 
-        # 4. Logic: DETERMINE CREDIT SCORE (The Answer Key)
-        # We assign points to decide the score
+        # Scoring Logic (The "Why")
         points = 0
-        
-        # Income points
         if income > 90000: points += 50
         elif income > 60000: points += 30
         else: points += 10
         
-        # Home points
         if home == "Owned": points += 20
-        
-        # Age points (Older people usually have better credit history)
         if age > 35: points += 10
-        
-        # Education points
         if edu in ["Master's Degree", "Doctorate"]: points += 10
-        
-        # Marital points (Married often more stable financially in datasets)
         if marital == "Married": points += 5
 
-        # Determine Final Label
-        if points >= 70:
-            score = "High"
-        elif points >= 40:
-            score = "Average"
-        else:
-            score = "Low"
+        if points >= 75: score = "High"
+        elif points >= 45: score = "Average"
+        else: score = "Low"
 
         data.append([age, gender, income, edu, marital, children, home, score])
 
     columns = ['Age', 'Gender', 'Income', 'Education', 'Marital Status', 'Number of Children', 'Home Ownership', 'Credit Score']
     return pd.DataFrame(data, columns=columns)
 
-# Generate the data
-df = generate_logical_data(1500)
+# Generate Data
+df = generate_logical_data(2000)
 
 # --- PREPROCESSING ---
-
-# 1. Map Ordinal Data (Order matters!)
-# This fixes the issue where the model didn't know Ph.D > High School
 edu_mapping = {
-    "High School Diploma": 0,
-    "Associate's Degree": 1,
-    "Bachelor's Degree": 2,
-    "Master's Degree": 3,
-    "Doctorate": 4
+    "High School Diploma": 0, "Associate's Degree": 1, "Bachelor's Degree": 2, 
+    "Master's Degree": 3, "Doctorate": 4
 }
 df['Education_Enc'] = df['Education'].map(edu_mapping)
 
-# 2. Encode Categorical Data
 le_gender = LabelEncoder()
 df['Gender_Enc'] = le_gender.fit_transform(df['Gender'])
 
@@ -109,26 +69,23 @@ le_marital = LabelEncoder()
 df['Marital_Enc'] = le_marital.fit_transform(df['Marital Status'])
 
 le_home = LabelEncoder()
-df['Home_Enc'] = le_home.fit_transform(df['Home Ownership'])
+df['Home_Enc'] = le_home.fit_transform(df['Home Ownership']) # Owned=0, Rented=1 usually (alpha sort)
+# Check mapping to be sure
+home_map = dict(zip(le_home.classes_, le_home.transform(le_home.classes_)))
 
-# 3. Encode Target
 le_target = LabelEncoder()
 df['Target'] = le_target.fit_transform(df['Credit Score'])
 
-# 4. Select Features
-# Features: Age, Gender, Income, Education_Level, Marital, Children, Home
 X = df[['Age', 'Gender_Enc', 'Income', 'Education_Enc', 'Marital_Enc', 'Number of Children', 'Home_Enc']]
 y = df['Target']
 
-# 5. Train Model
-# Increased estimators for better accuracy
 model = RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)
 model.fit(X, y)
 
-print("✅ Model Trained on 1500 logical examples.")
+print("✅ Model Trained & Explanation Logic Ready.")
 
 # ==========================================
-# 2. HTML INTERFACE (Fixed JS & Styling)
+# 2. HTML INTERFACE (With Modal)
 # ==========================================
 html_content = """
 <!DOCTYPE html>
@@ -145,286 +102,233 @@ html_content = """
             --primary: #4f46e5;
             --primary-hover: #4338ca;
             --bg-color: #f3f4f6;
-            --card-bg: #ffffff;
             --text-dark: #1f2937;
-            --text-light: #6b7280;
-            --border-color: #e5e7eb;
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        
         body { 
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); 
-            min-height: 100vh; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            padding: 20px; 
+            background: linear-gradient(135deg, #f3f4f6 0%, #dbeafe 100%); 
+            min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; 
         }
-
         .card { 
-            background: var(--card-bg); 
-            width: 100%; 
-            max-width: 500px; 
-            border-radius: 16px; 
-            padding: 40px; 
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); 
-            border: 1px solid rgba(255,255,255,0.7);
+            background: #ffffff; width: 100%; max-width: 500px; border-radius: 16px; padding: 40px; 
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1); border: 1px solid rgba(255,255,255,0.8);
         }
+        h1 { font-family: 'Poppins', sans-serif; font-size: 28px; color: var(--text-dark); text-align: center; }
+        p.subtext { color: #6b7280; font-size: 14px; text-align: center; margin-bottom: 25px; }
 
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { 
-            font-family: 'Poppins', sans-serif; 
-            font-size: 28px; 
-            color: var(--text-dark); 
-            font-weight: 700; 
-        }
-        .header p { color: var(--text-light); font-size: 14px; margin-top: 5px; }
-
-        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .input-wrapper { margin-bottom: 20px; }
-
-        label { display: block; font-size: 13px; color: var(--text-dark); font-weight: 600; margin-bottom: 8px; }
-
-        .input-group { position: relative; display: flex; align-items: center; }
-        .input-group i { position: absolute; left: 15px; color: #9ca3af; font-size: 14px; pointer-events: none; }
-
+        .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .input-group { margin-bottom: 15px; position: relative; }
+        label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #374151; }
+        
         input, select { 
-            width: 100%; 
-            padding: 12px 15px 12px 40px; 
-            font-size: 14px; 
-            color: var(--text-dark);
-            background-color: #f9fafb; 
-            border: 1px solid var(--border-color); 
-            border-radius: 10px; 
-            outline: none; 
-            transition: all 0.2s ease;
-            appearance: none; 
+            width: 100%; padding: 12px 15px 12px 40px; border-radius: 8px; border: 1px solid #e5e7eb; 
+            background: #f9fafb; outline: none; transition: 0.2s; font-size: 14px;
         }
+        .input-group i { position: absolute; left: 14px; top: 38px; color: #9ca3af; font-size: 14px; }
+        input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
         
-        .select-wrapper::after {
-            content: '\\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
-            position: absolute; right: 15px; font-size: 10px; color: #9ca3af; pointer-events: none;
-        }
-
-        input:focus, select:focus { 
-            border-color: var(--primary); background-color: #fff; 
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); 
-        }
-
         button { 
-            width: 100%; padding: 14px; background-color: var(--primary); color: white; 
-            font-size: 15px; font-weight: 600; border: none; border-radius: 10px; 
-            cursor: pointer; margin-top: 10px; transition: all 0.2s; 
-            display: flex; justify-content: center; align-items: center; gap: 10px;
+            width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; 
+            font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px;
         }
-        button:hover { background-color: var(--primary-hover); }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); }
 
-        .result-container { 
-            margin-top: 25px; padding: 20px; border-radius: 12px; 
-            text-align: center; background-color: #f9fafb; 
-            border: 1px solid var(--border-color); 
-            display: none; /* Hidden by default */
-        }
-
-        .result-title { font-size: 12px; text-transform: uppercase; color: var(--text-light); font-weight: 600; }
-        .result-value { font-family: 'Poppins', sans-serif; font-size: 24px; margin-top: 5px; font-weight: 700; }
-
-        .status-high { color: #059669; background: #d1fae5; border-color: #10b981; }
-        .status-avg { color: #d97706; background: #fef3c7; border-color: #f59e0b; }
-        .status-low { color: #dc2626; background: #fee2e2; border-color: #ef4444; }
+        /* Result Section */
+        .result-container { margin-top: 20px; display: none; }
+        .status-box { padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
+        .status-high { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .status-avg { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+        .status-low { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
         
-        .spinner {
-            border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 2px solid white;
-            width: 16px; height: 16px; animation: spin 1s linear infinite; display: none;
+        .details-btn {
+            background: #fff; color: var(--text-dark); border: 1px solid #d1d5db; margin-top: 10px;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .details-btn:hover { background: #f3f4f6; color: #000; }
+
+        /* MODAL STYLING */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px);
+            display: none; justify-content: center; align-items: center; z-index: 1000;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            background: white; width: 90%; max-width: 450px; padding: 30px;
+            border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            transform: scale(0.9); transition: transform 0.3s ease;
+            position: relative;
+        }
+        .modal-active { display: flex; opacity: 1; }
+        .modal-active .modal-content { transform: scale(1); }
+        
+        .close-btn { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 20px; color: #9ca3af; }
+        
+        .analysis-section { margin-top: 20px; }
+        .analysis-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #4b5563; }
+        .icon-good { color: #10b981; }
+        .icon-bad { color: #ef4444; }
+        .icon-neutral { color: #f59e0b; }
+
     </style>
 </head>
 <body>
     <div class="card">
         <div class="header">
             <h1>Financial AI</h1>
-            <p>Smart Credit Scoring System</p>
+            <p class="subtext">Advanced Credit Scoring & Analysis</p>
         </div>
         
         <form id="predictionForm">
             <div class="grid-row">
-                <div class="input-wrapper">
-                    <label>Age</label>
-                    <div class="input-group">
-                        <i class="fa-solid fa-user"></i>
-                        <input type="number" id="age" min="18" required placeholder="Years">
-                    </div>
-                </div>
-                <div class="input-wrapper">
-                    <label>Gender</label>
-                    <div class="input-group select-wrapper">
-                        <i class="fa-solid fa-venus-mars"></i>
-                        <select id="gender">
-                            <option value="Female">Female</option>
-                            <option value="Male">Male</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="input-wrapper">
-                <label>Annual Income ($)</label>
                 <div class="input-group">
-                    <i class="fa-solid fa-dollar-sign"></i>
-                    <input type="number" id="income" min="0" required placeholder="e.g. 55000">
+                    <label>Age</label>
+                    <i class="fa-solid fa-user"></i>
+                    <input type="number" id="age" min="18" required placeholder="e.g. 30">
+                </div>
+                <div class="input-group">
+                    <label>Gender</label>
+                    <i class="fa-solid fa-venus-mars"></i>
+                    <select id="gender"><option>Female</option><option>Male</option></select>
                 </div>
             </div>
 
+            <div class="input-group">
+                <label>Annual Income ($)</label>
+                <i class="fa-solid fa-dollar-sign"></i>
+                <input type="number" id="income" min="0" required placeholder="e.g. 60000">
+            </div>
+
             <div class="grid-row">
-                <div class="input-wrapper">
+                <div class="input-group">
                     <label>Education</label>
-                    <div class="input-group select-wrapper">
-                        <i class="fa-solid fa-graduation-cap"></i>
-                        <select id="education">
-                            <option value="High School Diploma">High School</option>
-                            <option value="Associate's Degree">Associate's Degree</option>
-                            <option value="Bachelor's Degree">Bachelor's Degree</option>
-                            <option value="Master's Degree">Master's Degree</option>
-                            <option value="Doctorate">Doctorate</option>
-                        </select>
-                    </div>
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <select id="education">
+                        <option>High School Diploma</option>
+                        <option>Associate's Degree</option>
+                        <option>Bachelor's Degree</option>
+                        <option>Master's Degree</option>
+                        <option>Doctorate</option>
+                    </select>
                 </div>
-                <div class="input-wrapper">
-                    <label>Marital Status</label>
-                    <div class="input-group select-wrapper">
-                        <i class="fa-solid fa-heart"></i>
-                        <select id="marital_status">
-                            <option value="Single">Single</option>
-                            <option value="Married">Married</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid-row">
-                <div class="input-wrapper">
-                    <label>Children</label>
-                    <div class="input-group">
-                        <i class="fa-solid fa-child"></i>
-                        <input type="number" id="children" min="0" required value="0">
-                    </div>
-                </div>
-                <div class="input-wrapper">
+                <div class="input-group">
                     <label>Home Type</label>
-                    <div class="input-group select-wrapper">
-                        <i class="fa-solid fa-house"></i>
-                        <select id="home_ownership">
-                            <option value="Rented">Rented</option>
-                            <option value="Owned">Owned</option>
-                        </select>
-                    </div>
+                    <i class="fa-solid fa-house"></i>
+                    <select id="home_ownership"><option>Rented</option><option>Owned</option></select>
                 </div>
             </div>
+            
+            <!-- Hidden/Default fields for model structure -->
+            <input type="hidden" id="marital_status" value="Single">
+            <input type="hidden" id="children" value="0">
 
-            <button type="submit" id="predictBtn">
-                <span>Analyze Credit Score</span>
-                <div class="spinner" id="spinner"></div>
-            </button>
+            <button type="submit" id="predictBtn">Analyze Profile</button>
         </form>
 
         <div id="result" class="result-container">
-            <div class="result-title">AI Prediction</div>
-            <div id="scoreText" class="result-value">--</div>
+            <div id="statusBox" class="status-box">
+                <h2 id="scoreText" style="margin:0; font-size: 22px;">--</h2>
+                <span id="scoreSub" style="font-size: 13px;">Creditworthiness Score</span>
+            </div>
+            <button class="details-btn" onclick="openModal()">
+                <i class="fa-solid fa-chart-pie"></i> View Detailed Analysis
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL POPUP -->
+    <div id="modalOverlay" class="modal-overlay">
+        <div class="modal-content">
+            <i class="fa-solid fa-xmark close-btn" onclick="closeModal()"></i>
+            <h2 style="font-family:'Poppins',sans-serif; color:#1f2937;">AI Analysis Report</h2>
+            <p style="font-size:13px; color:#6b7280;">Why did you get this score?</p>
+            
+            <div id="analysisContent" class="analysis-section">
+                <!-- Content injected via JS -->
+            </div>
+            
+            <button onclick="closeModal()" style="margin-top:20px; background:#f3f4f6; color:#374151;">Close Report</button>
         </div>
     </div>
 
     <script>
+        let currentAnalysis = {};
+
         document.getElementById('predictionForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             const btn = document.getElementById('predictBtn');
-            const spinner = document.getElementById('spinner');
-            const btnText = btn.querySelector('span');
-            const resultBox = document.getElementById('result');
-            const scoreText = document.getElementById('scoreText');
+            const resultDiv = document.getElementById('result');
+            const statusBox = document.getElementById('statusBox');
             
-            // Get values
-            const ageVal = document.getElementById('age').value;
-            const incomeVal = document.getElementById('income').value;
-            const childrenVal = document.getElementById('children').value;
-
-            if(ageVal < 0 || incomeVal < 0 || childrenVal < 0) {
-                alert("Please enter valid numbers.");
-                return;
-            }
-
-            // Loading State
-            btnText.innerText = "Analyzing...";
-            btn.style.opacity = "0.8";
-            spinner.style.display = "block";
-            resultBox.style.display = "none";
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             
             const data = {
-                age: parseInt(ageVal),
+                age: parseInt(document.getElementById('age').value),
                 gender: document.getElementById('gender').value,
-                income: parseFloat(incomeVal),
+                income: parseFloat(document.getElementById('income').value),
                 education: document.getElementById('education').value,
                 marital_status: document.getElementById('marital_status').value,
-                children: parseInt(childrenVal),
+                children: parseInt(document.getElementById('children').value),
                 home_ownership: document.getElementById('home_ownership').value
             };
 
             try {
-                // Fetch data
                 const response = await fetch('/predict', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                
                 const result = await response.json();
+
+                // Save analysis for modal
+                currentAnalysis = result.analysis;
+
+                // Update UI
+                resultDiv.style.display = 'block';
+                document.getElementById('scoreText').innerText = result.credit_score + " Risk Profile";
                 
-                if(response.ok && result.credit_score) {
-                    scoreText.innerText = result.credit_score;
-                    
-                    // Force the box to show
-                    resultBox.style.display = "block";
-                    
-                    // Color Logic
-                    resultBox.className = "result-container"; // reset
-                    if(result.credit_score === 'High') {
-                        resultBox.classList.add('status-high');
-                    } else if(result.credit_score === 'Average') {
-                        resultBox.classList.add('status-avg');
-                    } else {
-                        resultBox.classList.add('status-low');
-                    }
-                } else {
-                     alert("Error: " + (result.detail || "Processing failed"));
-                }
+                statusBox.className = 'status-box';
+                if(result.credit_score === 'High') statusBox.classList.add('status-high');
+                else if(result.credit_score === 'Average') statusBox.classList.add('status-avg');
+                else statusBox.classList.add('status-low');
+
             } catch (error) {
-                console.error(error);
-                alert("Server connection error. Make sure the backend is running.");
+                alert("Connection failed.");
             } finally {
-                btnText.innerText = "Analyze Credit Score";
-                btn.style.opacity = "1";
-                spinner.style.display = "none";
+                btn.innerText = "Analyze Profile";
             }
         });
+
+        function openModal() {
+            const content = document.getElementById('analysisContent');
+            content.innerHTML = ''; // Clear prev
+
+            // Add Factors
+            currentAnalysis.positive.forEach(item => {
+                content.innerHTML += `<div class="analysis-item"><i class="fa-solid fa-circle-check icon-good"></i> <span>${item}</span></div>`;
+            });
+            currentAnalysis.negative.forEach(item => {
+                content.innerHTML += `<div class="analysis-item"><i class="fa-solid fa-circle-exclamation icon-bad"></i> <span>${item}</span></div>`;
+            });
+            if(currentAnalysis.positive.length === 0 && currentAnalysis.negative.length === 0){
+                 content.innerHTML += `<div class="analysis-item"><i class="fa-solid fa-info-circle icon-neutral"></i> <span>Profile is standard with no major outliers.</span></div>`;
+            }
+
+            document.getElementById('modalOverlay').classList.add('modal-active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('modal-active');
+        }
     </script>
 </body>
 </html>
 """
 
 # ==========================================
-# 3. API
+# 3. API & EXPLAINABILITY LOGIC
 # ==========================================
 app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 class CreditInput(BaseModel):
     age: int = Field(..., ge=0)
@@ -441,41 +345,56 @@ def home():
 
 @app.post("/predict")
 def predict_credit_score(data: CreditInput):
-    try:
-        # Manual Ordinal Mapping for Prediction
-        edu_mapping = {
-            "High School Diploma": 0,
-            "Associate's Degree": 1,
-            "Bachelor's Degree": 2,
-            "Master's Degree": 3,
-            "Doctorate": 4
+    # 1. Prediction
+    edu_mapping = {"High School Diploma": 0, "Associate's Degree": 1, "Bachelor's Degree": 2, "Master's Degree": 3, "Doctorate": 4}
+    gender_enc = le_gender.transform([data.gender])[0]
+    marital_enc = le_marital.transform([data.marital_status])[0]
+    home_enc = le_home.transform([data.home_ownership])[0]
+    edu_enc = edu_mapping.get(data.education, 0)
+
+    features = np.array([[data.age, gender_enc, data.income, edu_enc, marital_enc, data.children, home_enc]])
+    pred_idx = model.predict(features)[0]
+    result_text = le_target.inverse_transform([pred_idx])[0]
+
+    # 2. Explainability Logic (Rule-based Analysis)
+    positive_factors = []
+    negative_factors = []
+
+    # Income Analysis
+    if data.income >= 90000:
+        positive_factors.append(f"Strong Income: ${data.income:,.0f} is well above average.")
+    elif data.income >= 60000:
+        positive_factors.append("Stable Income: Meets standard requirements.")
+    else:
+        negative_factors.append("Low Income: Income is a limiting factor for credit.")
+
+    # Education Analysis
+    if data.education in ["Master's Degree", "Doctorate"]:
+        positive_factors.append(f"Education: {data.education} correlates with financial stability.")
+    elif data.education == "High School Diploma":
+        negative_factors.append("Education: Higher education usually boosts score potential.")
+
+    # Home Ownership Analysis
+    if data.home_ownership == "Owned":
+        positive_factors.append("Asset: Home ownership indicates long-term stability.")
+    elif data.home_ownership == "Rented":
+        # Only negative if income is also low
+        if data.income < 60000:
+            negative_factors.append("Asset: Renting without high income increases risk.")
+
+    # Age Analysis
+    if data.age < 25:
+        negative_factors.append("Age: Limited credit history due to young age.")
+    elif data.age > 40:
+        positive_factors.append("Age: Mature profile suggests established credit history.")
+
+    return {
+        "credit_score": result_text,
+        "analysis": {
+            "positive": positive_factors,
+            "negative": negative_factors
         }
-        
-        # Transform inputs
-        gender_enc = le_gender.transform([data.gender])[0]
-        marital_enc = le_marital.transform([data.marital_status])[0]
-        home_enc = le_home.transform([data.home_ownership])[0]
-        edu_enc = edu_mapping[data.education] # Use map, not encoder
-
-        # Create Array
-        features = np.array([[
-            data.age,
-            gender_enc,
-            data.income,
-            edu_enc,
-            marital_enc,
-            data.children,
-            home_enc
-        ]])
-
-        # Predict
-        prediction_index = model.predict(features)[0]
-        result_text = le_target.inverse_transform([prediction_index])[0]
-
-        return {"credit_score": result_text}
-
-    except Exception as e:
-        return {"error": str(e)}
+    }
 
 if __name__ == "__main__":
     import uvicorn
