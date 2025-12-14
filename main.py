@@ -27,14 +27,12 @@ def generate_logical_data(n=2000):
         elif edu == "Bachelor's Degree": income = random.randint(55000, 95000)
         elif edu == "Master's Degree": income = random.randint(80000, 140000)
         else: income = random.randint(100000, 200000)
-        
-        # Adjust income based on gender wage gap (simulated for realism in dataset, not bias)
         income += random.randint(-5000, 15000)
 
         if income > 85000: home = random.choices(["Owned", "Rented"], weights=[80, 20])[0]
         else: home = random.choices(["Owned", "Rented"], weights=[30, 70])[0]
 
-        # Scoring Logic (The "Why")
+        # Scoring Logic
         points = 0
         if income > 90000: points += 50
         elif income > 60000: points += 30
@@ -45,10 +43,9 @@ def generate_logical_data(n=2000):
         if edu in ["Master's Degree", "Doctorate"]: points += 15
         elif edu == "Bachelor's Degree": points += 5
         
-        # Marital Status & Children Logic
-        if marital == "Married": points += 10 # Double income stability
-        if children > 2: points -= 5 # Higher expenses
-        if children == 0: points += 5 # Lower expenses
+        if marital == "Married": points += 10
+        if children > 2: points -= 5
+        if children == 0: points += 5
 
         if points >= 80: score = "High"
         elif points >= 50: score = "Average"
@@ -87,10 +84,10 @@ y = df['Target']
 model = RandomForestClassifier(n_estimators=200, max_depth=12, random_state=42)
 model.fit(X, y)
 
-print("✅ Model Trained & Animation Logic Ready.")
+print("✅ Model Trained")
 
 # ==========================================
-# 2. HTML INTERFACE (Split Screen Animation)
+# 2. HTML INTERFACE
 # ==========================================
 html_content = """
 <!DOCTYPE html>
@@ -151,7 +148,7 @@ html_content = """
             display: flex; flex-direction: column;
         }
 
-        /* ACTIVE STATE (When button clicked) */
+        /* ACTIVE STATE */
         .app-container.active .analysis-card {
             width: 400px;
             opacity: 1;
@@ -159,7 +156,6 @@ html_content = """
             transform: translateX(0);
         }
         
-        /* Typography & Inputs */
         h1 { font-family: 'Poppins', sans-serif; font-size: 24px; color: var(--text-dark); text-align: center; }
         p.subtext { color: #6b7280; font-size: 13px; text-align: center; margin-bottom: 25px; }
 
@@ -180,11 +176,11 @@ html_content = """
         }
         button:hover { background: var(--primary-hover); transform: translateY(-1px); }
 
-        /* Status Box */
+        /* RESULT BADGE */
         .result-area { margin-top: 20px; display: none; }
         .status-badge {
             padding: 15px; border-radius: 12px; text-align: center; 
-            font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 20px;
+            font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 18px;
             margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;
         }
         
@@ -196,14 +192,13 @@ html_content = """
         }
         .icon-good { color: #10b981; font-size: 16px; margin-top: 2px; }
         .icon-bad { color: #ef4444; font-size: 16px; margin-top: 2px; }
-        .icon-warn { color: #f59e0b; font-size: 16px; margin-top: 2px; }
 
         .details-btn {
             background: white; border: 1px solid #d1d5db; color: #374151;
         }
         .details-btn:hover { background: #f9fafb; }
         
-        /* High/Low Colors */
+        /* THEMES */
         .bg-high { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
         .bg-avg { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
         .bg-low { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
@@ -223,7 +218,7 @@ html_content = """
         <div class="card">
             <div class="header">
                 <h1>Financial AI</h1>
-                <p class="subtext">Enter details to predict credit risk</p>
+                <p class="subtext">Credit Eligibility Checker</p>
             </div>
             
             <form id="predictionForm">
@@ -265,7 +260,6 @@ html_content = """
                     </div>
                 </div>
 
-                <!-- NEW FIELDS -->
                 <div class="grid-row">
                     <div class="input-group">
                         <label>Marital Status</label>
@@ -282,13 +276,13 @@ html_content = """
                     </div>
                 </div>
 
-                <button type="submit" id="predictBtn">Analyze Profile</button>
+                <button type="submit" id="predictBtn">Check Eligibility</button>
             </form>
 
             <div id="resultArea" class="result-area">
                 <div id="scoreBadge" class="status-badge">--</div>
                 <button type="button" class="details-btn" id="detailsBtn" onclick="toggleAnalysis()">
-                    <i class="fa-solid fa-chart-pie"></i> &nbsp; View Detailed Analysis
+                    <i class="fa-solid fa-list-check"></i> &nbsp; View Logic Breakdown
                 </button>
             </div>
         </div>
@@ -297,9 +291,9 @@ html_content = """
         <div class="analysis-card" id="analysisCard">
             <div class="analysis-header">
                 <h2 style="font-family:'Poppins',sans-serif; font-size:18px; color:#1f2937;">
-                    <i class="fa-solid fa-magnifying-glass-chart" style="color:var(--primary);"></i> Breakdown
+                    <i class="fa-solid fa-magnifying-glass-chart" style="color:var(--primary);"></i> Decision Logic
                 </h2>
-                <p style="font-size:12px; color:#9ca3af;">AI generated logic based on your profile.</p>
+                <p style="font-size:12px; color:#9ca3af;">Why did the AI make this decision?</p>
             </div>
             
             <div id="analysisContent">
@@ -307,7 +301,7 @@ html_content = """
             </div>
             
             <div style="margin-top: auto;">
-                <button onclick="toggleAnalysis()" style="background:#f3f4f6; color:#374151;">Close Analysis</button>
+                <button onclick="toggleAnalysis()" style="background:#f3f4f6; color:#374151;">Close</button>
             </div>
         </div>
 
@@ -322,7 +316,7 @@ html_content = """
             const resultArea = document.getElementById('resultArea');
             const scoreBadge = document.getElementById('scoreBadge');
             
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing...';
             
             const data = {
                 age: parseInt(document.getElementById('age').value),
@@ -346,14 +340,33 @@ html_content = """
                 
                 // Show Result
                 resultArea.style.display = 'block';
-                scoreBadge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${result.credit_score} Risk`;
                 
-                scoreBadge.className = 'status-badge';
-                if(result.credit_score === 'High') scoreBadge.classList.add('bg-high');
-                else if(result.credit_score === 'Average') scoreBadge.classList.add('bg-avg');
-                else scoreBadge.classList.add('bg-low');
+                // --- CUSTOM NAMING LOGIC ---
+                let statusText = "";
+                let icon = "";
+                let bgClass = "";
 
-                // If Analysis window is already open, update it
+                if (result.credit_score === "High") {
+                    statusText = "Credit Approved";
+                    icon = "fa-circle-check";
+                    bgClass = "bg-high";
+                } else if (result.credit_score === "Average") {
+                    statusText = "Conditional Review";
+                    icon = "fa-file-signature";
+                    bgClass = "bg-avg";
+                } else {
+                    statusText = "Not Eligible";
+                    icon = "fa-circle-xmark";
+                    bgClass = "bg-low";
+                }
+
+                scoreBadge.innerHTML = `<i class="fa-solid ${icon}"></i> ${statusText}`;
+                
+                // Reset and apply class
+                scoreBadge.className = 'status-badge';
+                scoreBadge.classList.add(bgClass);
+
+                // Update analysis panel if open
                 if(document.getElementById('appContainer').classList.contains('active')){
                     populateAnalysis();
                 }
@@ -361,18 +374,17 @@ html_content = """
             } catch (error) {
                 alert("Error connecting to AI server.");
             } finally {
-                btn.innerText = "Analyze Profile";
+                btn.innerText = "Check Eligibility";
             }
         });
 
         function toggleAnalysis() {
             const container = document.getElementById('appContainer');
-            
             if(!container.classList.contains('active')) {
                 populateAnalysis();
-                container.classList.add('active'); // Trigger Animation
+                container.classList.add('active'); 
             } else {
-                container.classList.remove('active'); // Close Animation
+                container.classList.remove('active');
             }
         }
 
@@ -390,8 +402,6 @@ html_content = """
                     content.innerHTML += `<div class="analysis-item"><i class="fa-solid fa-triangle-exclamation icon-bad"></i> <span>${item}</span></div>`;
                 });
             }
-            
-            if(content.innerHTML === '') content.innerHTML = '<p style="text-align:center;font-size:13px;">No specific factors found.</p>';
         }
     </script>
 </body>
@@ -436,21 +446,18 @@ def predict_credit_score(data: CreditInput):
     pos = []
     neg = []
 
-    # Income Logic
-    if data.income >= 90000: pos.append("Income is in the top tier (> $90k).")
-    elif data.income < 40000: neg.append("Income is below the ideal threshold.")
+    if data.income >= 90000: pos.append("Excellent income bracket.")
+    elif data.income < 40000: neg.append("Income is below threshold.")
     
-    # Marital & Children Logic
-    if data.marital_status == "Married": pos.append("Marital status indicates financial stability.")
-    if data.children > 2: neg.append(f"{data.children} dependents increase financial liability.")
-    if data.children == 0: pos.append("No dependents reduces monthly expenses.")
+    if data.marital_status == "Married": pos.append("Marital status aids stability.")
+    
+    if data.children > 2: neg.append("High number of dependents.")
+    elif data.children == 0: pos.append("No financial dependents.")
 
-    # Home Logic
-    if data.home_ownership == "Owned": pos.append("Owning a home is a strong collateral asset.")
-    else: neg.append("Renting provides less collateral than owning.")
+    if data.home_ownership == "Owned": pos.append("Home ownership is a key asset.")
+    else: neg.append("Renting reduces asset collateral.")
 
-    # Education Logic
-    if data.education in ["Master's Degree", "Doctorate"]: pos.append(f"Advanced degree ({data.education}) correlates with low risk.")
+    if data.education in ["Master's Degree", "Doctorate"]: pos.append("Advanced education level.")
     
     return {
         "credit_score": result_text,
