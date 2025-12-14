@@ -341,7 +341,6 @@ html_content = """
                 // Show Result
                 resultArea.style.display = 'block';
                 
-                // --- CUSTOM NAMING LOGIC ---
                 let statusText = "";
                 let icon = "";
                 let bgClass = "";
@@ -362,11 +361,9 @@ html_content = """
 
                 scoreBadge.innerHTML = `<i class="fa-solid ${icon}"></i> ${statusText}`;
                 
-                // Reset and apply class
                 scoreBadge.className = 'status-badge';
                 scoreBadge.classList.add(bgClass);
 
-                // Update analysis panel if open
                 if(document.getElementById('appContainer').classList.contains('active')){
                     populateAnalysis();
                 }
@@ -442,22 +439,38 @@ def predict_credit_score(data: CreditInput):
     pred_idx = model.predict(features)[0]
     result_text = le_target.inverse_transform([pred_idx])[0]
 
-    # 3. Generate Logic Explanation
+    # 3. Generate Logic Explanation (Detailed Analysis)
     pos = []
     neg = []
 
-    if data.income >= 90000: pos.append("Excellent income bracket.")
-    elif data.income < 40000: neg.append("Income is below threshold.")
+    # Income Logic
+    if data.income >= 90000: 
+        pos.append(f"Strong Income: ${data.income:,.0f} is well above threshold.")
+    elif data.income < 40000: 
+        neg.append(f"Low Income: ${data.income:,.0f} is below credit safety margins.")
+    elif data.income < 60000:
+        neg.append("Moderate Income: Limits high-tier approval chances.")
     
-    if data.marital_status == "Married": pos.append("Marital status aids stability.")
+    # Marital & Children Logic
+    if data.marital_status == "Married": 
+        pos.append("Stability: Married status improves risk profile.")
     
-    if data.children > 2: neg.append("High number of dependents.")
-    elif data.children == 0: pos.append("No financial dependents.")
+    if data.children > 2: 
+        neg.append(f"Dependents: {data.children} children increase financial liability.")
+    elif data.children == 0: 
+        pos.append("Expenses: No dependents lowers monthly liability.")
 
-    if data.home_ownership == "Owned": pos.append("Home ownership is a key asset.")
-    else: neg.append("Renting reduces asset collateral.")
+    # Home Logic
+    if data.home_ownership == "Owned": 
+        pos.append("Asset: Home ownership serves as strong collateral.")
+    else: 
+        neg.append("Asset: Renting provides less collateral than owning.")
 
-    if data.education in ["Master's Degree", "Doctorate"]: pos.append("Advanced education level.")
+    # Education Logic
+    if data.education in ["Master's Degree", "Doctorate"]: 
+        pos.append(f"Education: Advanced degree ({data.education}) correlates with stability.")
+    elif data.education == "High School Diploma":
+        neg.append("Education: Limited academic background affects score ceiling.")
     
     return {
         "credit_score": result_text,
