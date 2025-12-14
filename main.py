@@ -205,9 +205,7 @@ html_content = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Credit Score AI</title>
-    <!-- Modern Font: Inter for UI, Poppins for Headings -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -257,7 +255,6 @@ html_content = """
             margin-top: 5px; 
         }
 
-        /* Form Layout */
         .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .input-wrapper { margin-bottom: 20px; position: relative; }
 
@@ -269,7 +266,6 @@ html_content = """
             margin-bottom: 8px; 
         }
 
-        /* Input Styling with Icon support */
         .input-group {
             position: relative;
             display: flex;
@@ -286,7 +282,7 @@ html_content = """
 
         input, select { 
             width: 100%; 
-            padding: 12px 15px 12px 40px; /* Padding left for icon */
+            padding: 12px 15px 12px 40px; 
             font-size: 14px; 
             color: var(--text-dark);
             background-color: #f9fafb; 
@@ -294,10 +290,9 @@ html_content = """
             border-radius: 10px; 
             outline: none; 
             transition: all 0.2s ease;
-            appearance: none; /* Remove default arrow */
+            appearance: none; 
         }
 
-        /* Custom Arrow for Select */
         .select-wrapper::after {
             content: '\\f078';
             font-family: 'Font Awesome 6 Free';
@@ -317,7 +312,6 @@ html_content = """
             box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); 
         }
 
-        /* Button Styling */
         button { 
             width: 100%; 
             padding: 14px; 
@@ -339,7 +333,6 @@ html_content = """
         button:hover { background-color: var(--primary-hover); }
         button:active { transform: scale(0.98); }
 
-        /* Result Section */
         .result-container { 
             margin-top: 25px; 
             padding: 20px; 
@@ -355,12 +348,10 @@ html_content = """
         .result-title { font-size: 12px; text-transform: uppercase; color: var(--text-light); letter-spacing: 1px; font-weight: 600; }
         .result-value { font-family: 'Poppins', sans-serif; font-size: 24px; margin-top: 5px; font-weight: 700; }
 
-        /* Status Colors */
         .status-high { color: #059669; background: #d1fae5; border: 1px solid #10b981; }
         .status-avg { color: #d97706; background: #fef3c7; border: 1px solid #f59e0b; }
         .status-low { color: #dc2626; background: #fee2e2; border: 1px solid #ef4444; }
 
-        /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .spinner {
@@ -499,7 +490,9 @@ html_content = """
             btnText.innerText = "Processing...";
             btn.style.opacity = "0.9";
             spinner.style.display = "block";
+            // Hide result box initially, but clear class so it doesn't conflict
             resultBox.style.display = "none";
+            resultBox.className = "result-container"; 
             
             const data = {
                 age: parseInt(ageVal),
@@ -525,9 +518,12 @@ html_content = """
                 
                 if(response.ok && result.credit_score) {
                     scoreText.innerText = result.credit_score;
-                    resultBox.className = "result-container show";
                     
-                    // Reset styling then apply new specific style
+                    // Force display block via inline style
+                    resultBox.style.display = "block";
+                    resultBox.className = "result-container show"; // Add show class
+                    
+                    // Remove old status classes
                     resultBox.classList.remove('status-high', 'status-avg', 'status-low');
                     
                     if(result.credit_score === 'High') {
