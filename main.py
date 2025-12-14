@@ -22,6 +22,7 @@ def generate_logical_data(n=2000):
         edu_options = ["High School Diploma", "Associate's Degree", "Bachelor's Degree", "Master's Degree", "Doctorate"]
         edu = random.choice(edu_options)
         
+        # Income logic
         if edu == "High School Diploma": income = random.randint(25000, 55000)
         elif edu == "Associate's Degree": income = random.randint(40000, 70000)
         elif edu == "Bachelor's Degree": income = random.randint(55000, 95000)
@@ -29,10 +30,11 @@ def generate_logical_data(n=2000):
         else: income = random.randint(100000, 200000)
         income += random.randint(-5000, 15000)
 
+        # Asset logic
         if income > 85000: home = random.choices(["Owned", "Rented"], weights=[80, 20])[0]
         else: home = random.choices(["Owned", "Rented"], weights=[30, 70])[0]
 
-        # Scoring Logic
+        # Scoring Logic (The Rules)
         points = 0
         if income > 90000: points += 50
         elif income > 60000: points += 30
@@ -47,6 +49,7 @@ def generate_logical_data(n=2000):
         if children > 2: points -= 5
         if children == 0: points += 5
 
+        # Thresholds
         if points >= 80: score = "High"
         elif points >= 50: score = "Average"
         else: score = "Low"
@@ -114,47 +117,26 @@ html_content = """
             overflow-x: hidden;
         }
 
-        /* WRAPPER FOR ANIMATION */
         .app-container {
-            display: flex;
-            align-items: flex-start;
-            gap: 20px;
+            display: flex; align-items: flex-start; gap: 20px;
             transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
             transform: translateX(0);
         }
 
-        /* MAIN FORM CARD */
         .card { 
             background: #ffffff; width: 450px; padding: 40px; 
             border-radius: 20px; box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15); 
-            border: 1px solid rgba(255,255,255,0.8);
-            z-index: 2;
-            transition: all 0.5s ease;
+            border: 1px solid rgba(255,255,255,0.8); z-index: 2; transition: all 0.5s ease;
         }
 
-        /* ANALYSIS CARD (Initially Hidden) */
         .analysis-card {
-            background: rgba(255, 255, 255, 0.95);
-            width: 0; 
-            opacity: 0;
-            padding: 0;
-            overflow: hidden;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
-            transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
-            transform: translateX(-50px);
-            height: 100%;
-            min-height: 500px;
-            display: flex; flex-direction: column;
+            background: rgba(255, 255, 255, 0.95); width: 0; opacity: 0; padding: 0;
+            overflow: hidden; border-radius: 20px; box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+            transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1); transform: translateX(-50px);
+            height: 100%; min-height: 500px; display: flex; flex-direction: column;
         }
 
-        /* ACTIVE STATE */
-        .app-container.active .analysis-card {
-            width: 400px;
-            opacity: 1;
-            padding: 30px;
-            transform: translateX(0);
-        }
+        .app-container.active .analysis-card { width: 400px; opacity: 1; padding: 30px; transform: translateX(0); }
         
         h1 { font-family: 'Poppins', sans-serif; font-size: 24px; color: var(--text-dark); text-align: center; }
         p.subtext { color: #6b7280; font-size: 13px; text-align: center; margin-bottom: 25px; }
@@ -176,7 +158,6 @@ html_content = """
         }
         button:hover { background: var(--primary-hover); transform: translateY(-1px); }
 
-        /* RESULT BADGE */
         .result-area { margin-top: 20px; display: none; }
         .status-badge {
             padding: 15px; border-radius: 12px; text-align: center; 
@@ -184,7 +165,6 @@ html_content = """
             margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;
         }
         
-        /* Analysis Items */
         .analysis-header { border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
         .analysis-item { 
             display: flex; align-items: flex-start; gap: 12px; margin-bottom: 15px; 
@@ -193,12 +173,9 @@ html_content = """
         .icon-good { color: #10b981; font-size: 16px; margin-top: 2px; }
         .icon-bad { color: #ef4444; font-size: 16px; margin-top: 2px; }
 
-        .details-btn {
-            background: white; border: 1px solid #d1d5db; color: #374151;
-        }
+        .details-btn { background: white; border: 1px solid #d1d5db; color: #374151; }
         .details-btn:hover { background: #f9fafb; }
         
-        /* THEMES */
         .bg-high { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
         .bg-avg { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
         .bg-low { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
@@ -211,9 +188,7 @@ html_content = """
     </style>
 </head>
 <body>
-
     <div class="app-container" id="appContainer">
-        
         <!-- LEFT: FORM CARD -->
         <div class="card">
             <div class="header">
@@ -264,10 +239,7 @@ html_content = """
                     <div class="input-group">
                         <label>Marital Status</label>
                         <i class="fa-solid fa-ring"></i>
-                        <select id="marital_status">
-                            <option>Single</option>
-                            <option>Married</option>
-                        </select>
+                        <select id="marital_status"><option>Single</option><option>Married</option></select>
                     </div>
                     <div class="input-group">
                         <label>Children</label>
@@ -287,7 +259,7 @@ html_content = """
             </div>
         </div>
 
-        <!-- RIGHT: ANALYSIS CARD (Slides out) -->
+        <!-- RIGHT: ANALYSIS CARD -->
         <div class="analysis-card" id="analysisCard">
             <div class="analysis-header">
                 <h2 style="font-family:'Poppins',sans-serif; font-size:18px; color:#1f2937;">
@@ -295,16 +267,11 @@ html_content = """
                 </h2>
                 <p style="font-size:12px; color:#9ca3af;">Why did the AI make this decision?</p>
             </div>
-            
-            <div id="analysisContent">
-                <!-- Javascript will inject items here -->
-            </div>
-            
+            <div id="analysisContent"></div>
             <div style="margin-top: auto;">
                 <button onclick="toggleAnalysis()" style="background:#f3f4f6; color:#374151;">Close</button>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -338,7 +305,6 @@ html_content = """
                 
                 currentAnalysis = result.analysis;
                 
-                // Show Result
                 resultArea.style.display = 'block';
                 
                 let statusText = "";
@@ -360,9 +326,7 @@ html_content = """
                 }
 
                 scoreBadge.innerHTML = `<i class="fa-solid ${icon}"></i> ${statusText}`;
-                
-                scoreBadge.className = 'status-badge';
-                scoreBadge.classList.add(bgClass);
+                scoreBadge.className = 'status-badge ' + bgClass;
 
                 if(document.getElementById('appContainer').classList.contains('active')){
                     populateAnalysis();
@@ -426,7 +390,6 @@ def home():
 
 @app.post("/predict")
 def predict_credit_score(data: CreditInput):
-    # 1. Prepare Data
     edu_mapping = {"High School Diploma": 0, "Associate's Degree": 1, "Bachelor's Degree": 2, "Master's Degree": 3, "Doctorate": 4}
     gender_enc = le_gender.transform([data.gender])[0]
     marital_enc = le_marital.transform([data.marital_status])[0]
@@ -435,43 +398,57 @@ def predict_credit_score(data: CreditInput):
 
     features = np.array([[data.age, gender_enc, data.income, edu_enc, marital_enc, data.children, home_enc]])
     
-    # 2. Predict
     pred_idx = model.predict(features)[0]
     result_text = le_target.inverse_transform([pred_idx])[0]
 
-    # 3. Generate Logic Explanation (Detailed Analysis)
+    # --- ENHANCED EXPLANATION LOGIC ---
     pos = []
     neg = []
 
     # Income Logic
     if data.income >= 90000: 
-        pos.append(f"Strong Income: ${data.income:,.0f} is well above threshold.")
+        pos.append(f"Strong Income: ${data.income:,.0f} is a tier-1 indicator.")
     elif data.income < 40000: 
-        neg.append(f"Low Income: ${data.income:,.0f} is below credit safety margins.")
+        neg.append(f"Low Income: ${data.income:,.0f} is below approval threshold.")
     elif data.income < 60000:
-        neg.append("Moderate Income: Limits high-tier approval chances.")
+        neg.append("Moderate Income: Limits high-tier approval without other assets.")
     
-    # Marital & Children Logic
-    if data.marital_status == "Married": 
-        pos.append("Stability: Married status improves risk profile.")
-    
-    if data.children > 2: 
-        neg.append(f"Dependents: {data.children} children increase financial liability.")
-    elif data.children == 0: 
-        pos.append("Expenses: No dependents lowers monthly liability.")
-
     # Home Logic
     if data.home_ownership == "Owned": 
-        pos.append("Asset: Home ownership serves as strong collateral.")
+        pos.append("Asset Verified: Home ownership provides strong collateral.")
     else: 
-        neg.append("Asset: Renting provides less collateral than owning.")
+        # Only negative if income is also weak
+        if data.income < 70000:
+            neg.append("Risk Factor: Renting combined with moderate income increases risk.")
+        else:
+            neg.append("Note: Renting status requires higher income verification.")
+
+    # Marital & Children Logic
+    if data.marital_status == "Married": 
+        pos.append("Stability: Marital status is a positive stability indicator.")
+    
+    if data.children > 2: 
+        neg.append(f"Liability: {data.children} dependents increases monthly obligations.")
+    elif data.children == 0: 
+        pos.append("Low Liability: No financial dependents detected.")
 
     # Education Logic
     if data.education in ["Master's Degree", "Doctorate"]: 
-        pos.append(f"Education: Advanced degree ({data.education}) correlates with stability.")
-    elif data.education == "High School Diploma":
-        neg.append("Education: Limited academic background affects score ceiling.")
+        pos.append(f"Education: {data.education} correlates with repayment consistency.")
+    elif data.education == "High School Diploma" and result_text != "High":
+        neg.append("Profile: Limited academic background affects score ceiling.")
+        
+    # --- SPECIFIC AVERAGE/LOW REASONS ---
+    if result_text == "Average":
+        if len(neg) == 0:
+            neg.append("Review Reason: Profile meets minimums but lacks strong assets (like Home or High Income).")
+        elif data.home_ownership == "Rented" and data.income > 50000:
+             neg.append("Conditional: Good income, but lack of property asset triggers manual review.")
     
+    if result_text == "Low":
+        if data.income < 40000 and data.home_ownership == "Rented":
+            neg.append("Critical: Combination of Low Income and Renting is high risk.")
+
     return {
         "credit_score": result_text,
         "analysis": {"positive": pos, "negative": neg}
